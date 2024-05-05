@@ -11,7 +11,7 @@ dotenv.config();
 // RabbitMQ connection
 const userName = "NodeUser";
 const password = process.env.RABBITMQ_PASSWORD;
-const options: ConnectionOptions = { username: userName, password: password, connectionName: 'Video Microservice', hostname: "217.105.22.226" };
+const options: ConnectionOptions = { username: userName, password: password, connectionName: 'User Microservice', hostname: "217.105.22.226" };
 const rabbit = new Connection(options);
 
 rabbit.on('error', (err) => {
