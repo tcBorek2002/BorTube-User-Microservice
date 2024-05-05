@@ -1,0 +1,13 @@
+version: '3.9'
+
+services:
+  video-microservice:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Specify the path to your Dockerfile if it's not in the current directory
+    container_name: bortube-video-microservice-container
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL="postgres://myuser:mysecretpassword@host.docker.internal:5432/bortube-db"
+
