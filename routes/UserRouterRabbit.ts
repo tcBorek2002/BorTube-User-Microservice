@@ -156,7 +156,7 @@ export class UserRouterRabbit {
                     if (error instanceof NotFoundError) {
                         return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(404, 'NotFoundError', 'User not found.')));
                     }
-                    console.error('Error deleting video:', error);
+                    console.error('Error deleting user:', error);
                     return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(500, 'InternalError', 'Internal Server Error: ' + error.message)));
                 });
             }
