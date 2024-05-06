@@ -2,15 +2,24 @@ import { User } from "@prisma/client";
 import { NotFoundError } from "../../errors/NotFoundError";
 import { IUserService } from "../IUserService";
 import { IUserRepository } from "../../repositories/IUserRepository";
+import bcrypt from "bcrypt";
 
 export class UserService implements IUserService {
     constructor(private userRepository: IUserRepository) {
 
     }
-    async authenticateUser(email: string, password: string): Promise<{ id: string; email: string; password: string; displayName: string | null; }> {
-        let user = await this.userRepository.authenticateUser(email, password);
-        if (user == null) throw new NotFoundError(401, "Invalid email or password");
-        return user;
+    async authenticateUser(email: string, password: string): Promise<User> {
+        let user = await this.userRepository.findUserByEmail(email);
+        if (user == null) {
+            throw new NotFoundError(401, "User with this email does not exist.");
+        }
+        let success = await bcrypt.compare(password, user.password);
+        if (success) {
+            return user;
+        }
+        else {
+            throw new NotFoundError(401, "Invalid password.");
+        }
     }
     async getAllUsers(): Promise<User[]> {
         return await this.userRepository.findAllUsers();
@@ -28,7 +37,8 @@ export class UserService implements IUserService {
         }
     }
     async createUser(email: string, password: string, displayName: string): Promise<User> {
-        return await this.userRepository.createUser(email, password, displayName);
+        let hashedPassword = await bcrypt.hash(password, 10);
+        return await this.userRepository.createUser(email, hashedPassword, displayName);
     }
     async updateUser({ id, email, password, displayName }: { id: string; email?: string | undefined; password?: string | undefined; displayName?: string | undefined; }): Promise<User> {
         return await this.userRepository.updateUser(id, email, password, displayName);

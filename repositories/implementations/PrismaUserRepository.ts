@@ -4,6 +4,13 @@ import { IUserRepository } from "../IUserRepository";
 
 
 export class PrismaUserRepository implements IUserRepository {
+    async findUserByEmail(email: string): Promise<User | null> {
+        return await prisma.user.findFirst({
+            where: {
+                email
+            }
+        });
+    }
     async authenticateUser(email: string, password: string): Promise<User | null> {
         return await prisma.user.findFirst({
             where: {
