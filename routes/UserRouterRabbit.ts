@@ -1,12 +1,9 @@
 import { Connection, Envelope } from 'rabbitmq-client';
-import { IVideoService } from '../services/IVideoService';
 import { ErrorDto } from '../dtos/ErrorDto';
 import { NotFoundError } from '../errors/NotFoundError';
-import { User, Video, VideoState } from '@prisma/client';
+import { User } from '@prisma/client';
 import { ResponseDto } from '../dtos/ResponseDto';
 import { PrismaClientValidationError } from '@prisma/client/runtime/library';
-import { IVideoFileService } from '../services/IVideoFileService';
-import { InternalServerError } from '../errors/InternalServerError';
 import { IUserService } from '../services/IUserService';
 
 async function rabbitReply(reply: (body: any, envelope?: Envelope | undefined) => Promise<void>, response: ResponseDto<any>): Promise<void> {
@@ -23,7 +20,31 @@ export class UserRouterRabbit {
     }
 
     public start(): void {
-        const getAllVideosServer = this.rabbit.createConsumer(
+
+        const authenticateUserServer = this.rabbit.createConsumer(
+            {
+                queue: 'authenticate-user',
+            },
+            async (req, reply) => {
+                console.log('Authenticate user request:', req.body);
+                const { email, password } = req.body;
+                if (!email || !password) {
+                    return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(400, 'InvalidInputError', 'Email and password are required.')));
+                }
+
+                this.userService.authenticateUser(email, password).then(async (user) => {
+                    return await rabbitReply(reply, new ResponseDto<User>(true, user));
+                }).catch(async (error) => {
+                    if (error instanceof NotFoundError) {
+                        return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(401, 'NotFoundError', 'Invalid email or password.')));
+                    }
+                    return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(500, 'InternalError', 'Internal Server Error.')));
+                });
+            }
+        );
+
+
+        const getAllUsersServer = this.rabbit.createConsumer(
             {
                 queue: 'get-all-users',
             },
@@ -87,16 +108,16 @@ export class UserRouterRabbit {
             },
             async (req, reply) => {
                 console.log('Update user request:', req.body);
-                const videoId = req.body.id;
 
                 // Check if the video ID is a valid number
-                if (videoId == null) {
+                const { id, email, password, displayName } = req.body;
+
+                if (id == null) {
                     return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(400, 'InvalidInputError', 'User ID is required.')));
                 }
-                const { email, password, displayName } = req.body;
 
                 // Update the video in the database
-                this.userService.updateUser({ id: videoId, email: email, password: password, displayName: displayName }).then(async (updatedUser) => {
+                this.userService.updateUser({ id: id, email: email, password: password, displayName: displayName }).then(async (updatedUser) => {
                     if (updatedUser != null) { return await rabbitReply(reply, new ResponseDto<User>(true, updatedUser)) }
                     else {
                         return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(404, 'NotFoundError', 'Video not found.')));
@@ -113,53 +134,42 @@ export class UserRouterRabbit {
             }
         );
 
-        const deleteVideoServer = this.rabbit.createConsumer(
+        const deleteUserServer = this.rabbit.createConsumer(
             {
-                queue: 'delete-video',
+                queue: 'delete-user',
             },
             async (req, reply) => {
-                console.log('Delete video request:', req.body);
-                const videoId = req.body.id;
+                console.log('Delete user request:', req.body);
+                const userId = req.body.id;
 
                 // Check if the video ID is a valid number
-                if (videoId == null) {
-                    return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(400, 'InvalidInputError', 'Video ID is required.')));
+                if (userId == null) {
+                    return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(400, 'InvalidInputError', 'User ID is required.')));
                 }
 
-                let video = await this.videoService.getVideoById(videoId).catch((error) => {
-                    return new ResponseDto(false, new ErrorDto(404, 'NotFoundError', 'Video not found.'));
-                });
-                if (video == null) {
-                    return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(404, 'NotFoundError', 'Video not found.')));
-                }
-
-                const videoObj = video as { id: string; title: string; description: string; videoState: VideoState; videoFileId: number | null; };
-
-                await this.videoFileService.deleteVideoFileById(videoObj.id).catch((error) => {
-                    return new ResponseDto(false, new ErrorDto(500, 'InternalError', 'Internal Server Error. ' + error.message));
-                });
-
-                this.videoService.deleteVideoByID(videoId).then(async (deleted) => {
-                    return await rabbitReply(reply, new ResponseDto<Video>(true, deleted));
+                this.userService.deleteUserById(userId).then(async (deletedUser) => {
+                    if (deletedUser != null) { return await rabbitReply(reply, new ResponseDto<User>(true, deletedUser)) }
+                    else {
+                        return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(404, 'NotFoundError', 'User not found.')));
+                    }
                 }).catch(async (error) => {
                     if (error instanceof NotFoundError) {
-                        return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(404, 'NotFoundError', error.message)));
+                        return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(404, 'NotFoundError', 'User not found.')));
                     }
-                    else {
-                        return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(500, 'InternalError', 'Internal Server Error.')));
-                    }
+                    console.error('Error deleting video:', error);
+                    return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(500, 'InternalError', 'Internal Server Error: ' + error.message)));
                 });
             }
         );
 
         process.on('SIGINT', async () => {
             await Promise.all([
-                getAllVideosServer.close(),
-                getAllVisibleVideosServer.close(),
-                getVideoByIdServer.close(),
-                createVideoServer.close(),
-                updateVideoServer.close(),
-                deleteVideoServer.close(),
+                authenticateUserServer.close(),
+                getAllUsersServer.close(),
+                getUserByIdServer.close(),
+                createUserServer.close(),
+                updateUserServer.close(),
+                deleteUserServer.close(),
             ]);
             await this.rabbit.close();
         });

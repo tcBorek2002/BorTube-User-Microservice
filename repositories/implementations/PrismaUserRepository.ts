@@ -1,5 +1,4 @@
-import { User, Video, VideoState } from "@prisma/client";
-import { IVideoRepository } from "../IVideoRepository";
+import { User } from "@prisma/client";
 import prisma from "../../client";
 import { IUserRepository } from "../IUserRepository";
 

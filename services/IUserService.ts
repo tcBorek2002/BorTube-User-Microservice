@@ -1,6 +1,7 @@
-import { User, Video, VideoState } from "@prisma/client";
+import { User } from "@prisma/client";
 
 export interface IUserService {
+    authenticateUser(email: string, password: string): Promise<User>;
     getAllUsers(): Promise<User[]>;
     getUserById(id: string): Promise<User>;
     deleteUserById(id: string): Promise<User>;

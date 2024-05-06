@@ -3,26 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model Video {
-  id          String     @id @default(uuid())
-  title       String     @db.VarChar(100)
-  description String
-  videoState  VideoState
-  videoFileId String?    @unique
-  userId      String?
-  User        User?      @relation(fields: [userId], references: [id])
-  videoFile   VideoFile? @relation(fields: [videoFileId], references: [id])
-}
-
-model VideoFile {
-  id       String  @id @default(uuid())
-  duration Int
-  videoUrl String?
-  video    Video?
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -30,11 +13,4 @@ model User {
   email       String  @unique
   password    String
   displayName String?
-  Video       Video[]
-}
-
-enum VideoState {
-  UPLOADING
-  HIDDEN
-  VISIBLE
 }
