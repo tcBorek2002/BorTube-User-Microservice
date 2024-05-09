@@ -5,6 +5,7 @@ import { User } from '@prisma/client';
 import { ResponseDto } from '../dtos/ResponseDto';
 import { PrismaClientValidationError } from '@prisma/client/runtime/library';
 import { IUserService } from '../services/IUserService';
+import { UserDto } from '../dtos/UserDto';
 
 async function rabbitReply(reply: (body: any, envelope?: Envelope | undefined) => Promise<void>, response: ResponseDto<any>): Promise<void> {
     await reply(response);
@@ -73,6 +74,53 @@ export class UserRouterRabbit {
                     if (error instanceof NotFoundError) {
                         rabbitReply(reply, new ResponseDto(false, new ErrorDto(404, 'NotFoundError', 'User not found.')));
                     }
+                }
+            }
+        );
+
+        const getUserDtoByIdServer = this.rabbit.createConsumer(
+            {
+                queue: 'get-user-dto-by-id',
+            },
+            async (req, reply) => {
+                console.log('Get user-dto by id:', req.body.id);
+                let userId = req.body.id;
+                if (userId == null) {
+                    return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(400, 'InvalidInputError', 'User ID is required.')));
+                }
+
+                try {
+                    const user = await this.userService.getUserById(userId);
+                    const dto: UserDto = { id: user.id, displayName: user.displayName };
+                    rabbitReply(reply, new ResponseDto<UserDto>(true, dto));
+                } catch (error) {
+                    if (error instanceof NotFoundError) {
+                        rabbitReply(reply, new ResponseDto(false, new ErrorDto(404, 'NotFoundError', 'User not found.')));
+                    }
+                    rabbitReply(reply, new ResponseDto(false, new ErrorDto(500, 'InternalError', 'Internal Server Error.')));
+                }
+            }
+        );
+
+        const getUsersByIdsServer = this.rabbit.createConsumer(
+            {
+                queue: 'get-users-by-id',
+            },
+            async (req, reply) => {
+                console.log('Get user-dto by ids:', req.body.ids);
+                let userIds = req.body.ids;
+                if (userIds == null || !Array.isArray(userIds) || userIds.length == 0) {
+                    return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(400, 'InvalidInputError', 'User IDs are required.')));
+                }
+
+                try {
+                    const users = await this.userService.getUsersByIds(userIds);
+                    rabbitReply(reply, new ResponseDto<UserDto[]>(true, users));
+                } catch (error) {
+                    if (error instanceof NotFoundError) {
+                        rabbitReply(reply, new ResponseDto(false, new ErrorDto(404, 'NotFoundError', 'User not found.')));
+                    }
+                    rabbitReply(reply, new ResponseDto(false, new ErrorDto(500, 'InternalError', 'Internal Server Error.')));
                 }
             }
         );
@@ -167,6 +215,8 @@ export class UserRouterRabbit {
                 authenticateUserServer.close(),
                 getAllUsersServer.close(),
                 getUserByIdServer.close(),
+                getUsersByIdsServer.close(),
+                getUserDtoByIdServer.close(),
                 createUserServer.close(),
                 updateUserServer.close(),
                 deleteUserServer.close(),

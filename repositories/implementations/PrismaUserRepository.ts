@@ -4,6 +4,7 @@ import { IUserRepository } from "../IUserRepository";
 
 
 export class PrismaUserRepository implements IUserRepository {
+
     async findUserByEmail(email: string): Promise<User | null> {
         return await prisma.user.findFirst({
             where: {
@@ -24,6 +25,15 @@ export class PrismaUserRepository implements IUserRepository {
     }
     async findUserById(id: string): Promise<User | null> {
         return await prisma.user.findUnique({ where: { id } });
+    }
+    async findUsersByIds(ids: string[]): Promise<User[]> {
+        return await prisma.user.findMany({
+            where: {
+                id: {
+                    in: ids
+                }
+            }
+        });
     }
     async deleteUserById(id: string): Promise<User> {
         return await prisma.user.delete({ where: { id } });

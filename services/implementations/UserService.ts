@@ -3,6 +3,7 @@ import { NotFoundError } from "../../errors/NotFoundError";
 import { IUserService } from "../IUserService";
 import { IUserRepository } from "../../repositories/IUserRepository";
 import bcrypt from "bcrypt";
+import { UserDto } from "../../dtos/UserDto";
 
 export class UserService implements IUserService {
     constructor(private userRepository: IUserRepository) {
@@ -25,9 +26,17 @@ export class UserService implements IUserService {
         return await this.userRepository.findAllUsers();
     }
     async getUserById(id: string): Promise<User> {
-        let video = await this.userRepository.findUserById(id);
-        if (video == null) throw new NotFoundError(404, "User not found");
-        return video;
+        let user = await this.userRepository.findUserById(id);
+        if (user == null) throw new NotFoundError(404, "User not found");
+        return user;
+    }
+    async getUsersByIds(ids: string[]): Promise<UserDto[]> {
+        let users = await this.userRepository.findUsersByIds(ids);
+        let userDtos: UserDto[] = [];
+        users.forEach(user => {
+            userDtos.push({ id: user.id, displayName: user.displayName });
+        });
+        return userDtos;
     }
     async deleteUserById(id: string): Promise<User> {
         let user = await this.userRepository.findUserById(id);
