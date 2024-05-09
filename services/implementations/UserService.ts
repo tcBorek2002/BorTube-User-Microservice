@@ -41,6 +41,9 @@ export class UserService implements IUserService {
         return await this.userRepository.createUser(email, hashedPassword, displayName);
     }
     async updateUser({ id, email, password, displayName }: { id: string; email?: string | undefined; password?: string | undefined; displayName?: string | undefined; }): Promise<User> {
+        if (password) {
+            password = await bcrypt.hash(password, 10);
+        }
         return await this.userRepository.updateUser(id, email, password, displayName);
     }
 }
