@@ -10,7 +10,11 @@ dotenv.config();
 // RabbitMQ connection
 const userName = "NodeUser";
 const password = process.env.RABBITMQ_PASSWORD;
-const options: ConnectionOptions = { username: userName, password: password, connectionName: 'User Microservice', hostname: "217.105.22.226" };
+const hostname = process.env.RABBITMQ_HOSTNAME;
+if (!password || !hostname) {
+  throw new Error('RabbitMQ connection parameters not set')
+}
+const options: ConnectionOptions = { username: userName, password: password, connectionName: 'User Microservice', hostname: hostname };
 const rabbit = new Connection(options);
 
 rabbit.on('error', (err) => {
