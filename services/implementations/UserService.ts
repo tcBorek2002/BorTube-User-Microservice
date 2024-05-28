@@ -4,17 +4,38 @@ import { IUserService } from "../IUserService";
 import { IUserRepository } from "../../repositories/IUserRepository";
 import bcrypt from "bcrypt";
 import { UserDto } from "../../dtos/UserDto";
+import * as argon2 from "argon2";
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const PEPPER = process.env.PEPPER
 
 export class UserService implements IUserService {
+
     constructor(private userRepository: IUserRepository) {
 
     }
+
+
     async authenticateUser(email: string, password: string): Promise<User> {
-        let user = await this.userRepository.findUserByEmail(email);
+        if (!PEPPER) {
+            console.log("Pepper is not set");
+            throw new Error("Pepper is not set");
+        }
+
+        let user;
+        try {
+            user = await this.userRepository.findUserByEmail(email);
+        }
+        catch (error) {
+            console.log("Error finding user: ", error);
+            throw new NotFoundError(401, "User with this email does not exist.");
+        }
         if (user == null) {
             throw new NotFoundError(401, "User with this email does not exist.");
         }
-        let success = await bcrypt.compare(password, user.password);
+        let success = await argon2.verify(user.password, password, { secret: Buffer.from(PEPPER) });
         if (success) {
             return user;
         }
@@ -46,12 +67,18 @@ export class UserService implements IUserService {
         }
     }
     async createUser(email: string, password: string, displayName: string): Promise<User> {
-        let hashedPassword = await bcrypt.hash(password, 10);
+        if (!PEPPER) {
+            throw new Error("Pepper is not set");
+        }
+        let hashedPassword = await argon2.hash(password, { secret: Buffer.from(PEPPER) });
         return await this.userRepository.createUser(email, hashedPassword, displayName);
     }
     async updateUser({ id, email, password, displayName }: { id: string; email?: string | undefined; password?: string | undefined; displayName?: string | undefined; }): Promise<User> {
+        if (!PEPPER) {
+            throw new Error("Pepper is not set");
+        }
         if (password) {
-            password = await bcrypt.hash(password, 10);
+            password = await argon2.hash(password, { secret: Buffer.from(PEPPER) });
         }
         return await this.userRepository.updateUser(id, email, password, displayName);
     }
