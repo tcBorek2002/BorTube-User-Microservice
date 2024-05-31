@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "permissionGrantedDate" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
