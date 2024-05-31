@@ -141,6 +141,8 @@ export class UserRouterRabbit {
                     return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(400, 'InvalidInputError', 'Email, password and displayName are required.')));
                 }
 
+                if (password.length < 8) return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(400, 'InvalidInputError', 'Password must be at least 8 characters long.')));
+
                 let createdObject = await this.userService.createUser(email, password, displayName).catch(async (error) => {
                     return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(500, 'InternalError', 'Internal Server Error. ' + error.message)));
                 });
