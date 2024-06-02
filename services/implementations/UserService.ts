@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import { UserDto } from "../../dtos/UserDto";
 import * as argon2 from "argon2";
 import dotenv from 'dotenv';
+import { IVideoService } from "../IVideoService";
 
 dotenv.config();
 
@@ -13,7 +14,7 @@ const PEPPER = process.env.PEPPER
 
 export class UserService implements IUserService {
 
-    constructor(private userRepository: IUserRepository) {
+    constructor(private userRepository: IUserRepository, private videoService: IVideoService) {
 
     }
 
@@ -60,6 +61,13 @@ export class UserService implements IUserService {
         return userDtos;
     }
     async deleteUserById(id: string): Promise<User> {
+        let videosDeleted = await this.videoService.deleteVideosByUserId(id).catch((error) => {
+            throw error;
+        });
+        console.log("Videos deleted?: ", videosDeleted);
+        if (!videosDeleted) {
+            throw new Error("Failed to delete videos by user");
+        }
         let user = await this.userRepository.findUserById(id);
         if (!user) throw new NotFoundError(404, "User not found");
         else {

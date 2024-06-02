@@ -3,6 +3,7 @@ import Connection, { ConnectionOptions } from 'rabbitmq-client';
 import { UserRouterRabbit } from './routes/UserRouterRabbit';
 import { UserService } from './services/implementations/UserService';
 import { PrismaUserRepository } from './repositories/implementations/PrismaUserRepository';
+import { RabbitVideoService } from './services/implementations/RabbitVideoService';
 
 //For env File 
 dotenv.config();
@@ -24,5 +25,5 @@ rabbit.on('connection', () => {
   console.log('Connection successfully (re)established')
 })
 
-const userRouterRabbit = new UserRouterRabbit(rabbit, new UserService(new PrismaUserRepository()));
+const userRouterRabbit = new UserRouterRabbit(rabbit, new UserService(new PrismaUserRepository(), new RabbitVideoService(rabbit)));
 userRouterRabbit.start();

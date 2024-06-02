@@ -192,7 +192,7 @@ export class UserRouterRabbit {
                 console.log('Delete user request:', req.body);
                 const userId = req.body.id;
 
-                // Check if the video ID is a valid number
+                // Check if the user ID is a valid number
                 if (userId == null) {
                     return await rabbitReply(reply, new ResponseDto(false, new ErrorDto(400, 'InvalidInputError', 'User ID is required.')));
                 }
