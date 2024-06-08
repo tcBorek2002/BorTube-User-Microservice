@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\Users\Borek\Documents\Kompose\kompose.exe convert
+    kompose.version: 1.26.0 (40646f47)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: bortube-user-microservice
+  name: bortube-user-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: bortube-user-microservice
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\Users\Borek\Documents\Kompose\kompose.exe convert
+        kompose.version: 1.26.0 (40646f47)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: bortube-user-microservice
+    spec:
+      imagePullSecrets:
+        - name: bortube-pull-secret
+      containers:
+        - image: bortubecontainers.azurecr.io/bortube/user-microservice:latest
+          name: bortube-user-microservice-container
+          resources: {}
+          envFrom:
+            - secretRef:
+                name: user-microservice-secret
+      restartPolicy: Always
+status: {}
