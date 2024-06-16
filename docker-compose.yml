@@ -8,6 +8,6 @@ services:
     container_name: bortube-video-microservice-container
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL="postgres://myuser:mysecretpassword@host.docker.internal:5432/bortube-db"
+    # environment: Commented out for SonarQube
+      # - DATABASE_URL="postgres://myuser:mysecretpassword@host.docker.internal:5432/bortube-db"
 
