@@ -35,3 +35,4 @@ npm-debug.log
 assets/gcp-key.json
 .scannerwork/report-task.txt
 gateway-secret.yaml
+user-microservice-secret.yaml
